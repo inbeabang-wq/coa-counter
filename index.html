@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="COA Counter">
+<title>COA Smart Counter</title>
+<style>
+:root {
+  --bg:#111; --card:#1c1c1e; --card2:#2c2c2e; --border:#3a3a3c;
+  --gold:#ffd60a; --orange:#ff9f0a; --green:#30d158; --red:#ff453a;
+  --blue:#0a84ff; --purple:#bf5af2; --text:#f5f5f7; --dim:#8e8e93;
+  --safe-top:env(safe-area-inset-top); --safe-bot:env(safe-area-inset-bottom);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{background:var(--bg);color:var(--text);font-family:-apple-system,'Helvetica Neue',sans-serif;}
+
+/* HEADER */
+.hdr{background:var(--card);border-bottom:1px solid var(--border);
+  padding:calc(var(--safe-top) + 14px) 18px 14px;
+  display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:99;}
+.hdr-ico{width:40px;height:40px;background:var(--gold);border-radius:10px;
+  display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.hdr-t{font-size:17px;font-weight:700;letter-spacing:-0.3px;}
+.hdr-s{font-size:11px;color:var(--gold);margin-top:1px;letter-spacing:0.3px;}
+.hdr-date{margin-left:auto;font-size:11px;color:var(--dim);text-align:right;flex-shrink:0;}
+
+.page{padding:16px 16px calc(var(--safe-bot)+28px);max-width:480px;margin:0 auto;}
+
+/* SEC LABEL */
+.sec{font-size:11px;font-weight:600;color:var(--dim);text-transform:uppercase;
+  letter-spacing:0.8px;margin:18px 0 8px;}
+.sec:first-of-type{margin-top:0;}
+
+/* CARD */
+.crd{background:var(--card);border-radius:14px;padding:14px 16px;margin-bottom:16px;}
+
+/* API KEY */
+.key-row{display:flex;gap:8px;align-items:center;}
+.key-inp{flex:1;background:var(--card2);border:1.5px solid var(--border);border-radius:10px;
+  padding:11px 14px;color:var(--text);font-size:14px;font-family:'SF Mono',monospace;
+  outline:none;-webkit-appearance:none;transition:border-color .2s;}
+.key-inp:focus{border-color:var(--gold);}
+.key-eye{background:var(--card2);border:1.5px solid var(--border);color:var(--dim);
+  padding:11px 14px;border-radius:10px;cursor:pointer;font-size:15px;}
+.key-st{margin-top:7px;font-size:12px;}
+.key-hint{margin-top:5px;font-size:11px;color:var(--dim);line-height:1.6;}
+.key-hint a{color:var(--blue);text-decoration:none;}
+
+/* MODE TABS */
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:16px;}
+.tab{padding:11px;border:1.5px solid var(--border);border-radius:12px;background:var(--card);
+  color:var(--dim);font-size:13px;font-weight:600;cursor:pointer;text-align:center;
+  transition:all .15s;-webkit-appearance:none;}
+.tab.active{background:var(--gold);color:#000;border-color:var(--gold);}
+.tab:active{opacity:.7;}
+.tab .em{font-size:20px;display:block;margin-bottom:3px;}
+
+/* ITEM FIELDS */
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.fld label{display:block;font-size:11px;color:var(--dim);margin-bottom:5px;font-weight:600;letter-spacing:.3px;}
+.fld input,.fld select{width:100%;background:var(--card2);border:1.5px solid var(--border);
+  border-radius:10px;padding:11px 14px;color:var(--text);font-size:14px;outline:none;
+  -webkit-appearance:none;transition:border-color .2s;}
+.fld input:focus,.fld select:focus{border-color:var(--gold);}
+.fld select{appearance:none;-webkit-appearance:none;}
+
+/* IMAGE ZONE */
+.img-zone{background:var(--card);border:2px dashed var(--border);border-radius:14px;
+  aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;
+  flex-direction:column;overflow:hidden;position:relative;margin-bottom:12px;
+  transition:border-color .2s;}
+.img-zone.filled{border-style:solid;border-color:var(--gold);}
+.img-zone img{width:100%;height:100%;object-fit:cover;display:block;}
+.ph{text-align:center;color:var(--dim);padding:20px;pointer-events:none;}
+.ph .em{font-size:52px;opacity:.5;margin-bottom:8px;}
+.ph p{font-size:14px;line-height:1.6;}
+.ph small{font-size:12px;opacity:.6;}
+.overlay-clear{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.65);
+  border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;
+  font-size:14px;display:none;align-items:center;justify-content:center;}
+.img-zone.filled .overlay-clear{display:flex;}
+
+/* OVERLAY COUNT BADGE — shown on preview */
+.overlay-badge{position:absolute;bottom:12px;left:12px;background:rgba(0,0,0,.75);
+  border:2px solid var(--gold);border-radius:12px;padding:6px 14px;
+  font-size:22px;font-weight:800;color:var(--gold);display:none;letter-spacing:-0.5px;}
+
+/* CAP BUTTONS */
+.cap-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.cap-btn{padding:14px;border:none;border-radius:12px;font-size:15px;font-weight:600;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+  -webkit-appearance:none;transition:opacity .15s;}
+.cap-btn:active{opacity:.7;}
+.cap-cam{background:var(--gold);color:#000;}
+.cap-lib{background:var(--card2);color:var(--text);border:1.5px solid var(--border);}
+input[type=file]{display:none;}
+
+/* ANALYZE */
+.btn-ana{width:100%;padding:17px;background:var(--orange);color:#fff;border:none;
+  border-radius:14px;font-size:17px;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  -webkit-appearance:none;transition:opacity .15s;margin-bottom:14px;letter-spacing:-0.3px;}
+.btn-ana:active{opacity:.75;}
+.btn-ana:disabled{background:var(--card2);color:var(--border);cursor:not-allowed;opacity:1;}
+
+/* ERROR */
+.err{background:rgba(255,69,58,.1);border:1px solid var(--red);border-radius:12px;
+  padding:13px 15px;font-size:13px;color:var(--red);margin-bottom:14px;
+  display:none;line-height:1.6;}
+.err.on{display:block;}
+
+/* LOADING */
+.load{text-align:center;padding:32px 0;display:none;}
+.load.on{display:block;}
+.spin{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--gold);
+  border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.load p{font-size:13px;color:var(--dim);}
+
+/* RESULT CARD */
+.res{background:var(--card);border-radius:14px;padding:18px 16px;
+  margin-bottom:14px;display:none;}
+.res.on{display:block;animation:up .3s ease;}
+@keyframes up{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+.res-lbl{font-size:11px;color:var(--dim);font-weight:600;text-transform:uppercase;
+  letter-spacing:.8px;margin-bottom:4px;}
+.res-main{display:flex;align-items:baseline;gap:8px;}
+.res-num{font-size:88px;font-weight:800;color:var(--gold);line-height:1;letter-spacing:-4px;}
+.res-unit{font-size:20px;color:var(--dim);font-weight:600;}
+.conf-track{background:var(--border);border-radius:4px;height:5px;margin-top:14px;overflow:hidden;}
+.conf-bar{height:100%;border-radius:4px;transition:width .8s ease;}
+.conf-row{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);margin-top:5px;}
+
+/* ITEMS LIST inside result */
+.items-list{margin-top:14px;padding-top:14px;border-top:1px solid var(--border);}
+.items-list-title{font-size:12px;font-weight:600;color:var(--dim);margin-bottom:8px;
+  text-transform:uppercase;letter-spacing:.5px;}
+.item-pill{display:inline-flex;align-items:center;gap:6px;background:var(--card2);
+  border:1px solid var(--border);border-radius:20px;padding:5px 12px;
+  font-size:13px;margin:3px 3px 3px 0;}
+.item-pill .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.res-note{margin-top:10px;font-size:13px;color:var(--dim);line-height:1.6;}
+
+/* SAVE */
+.btn-save{width:100%;padding:15px;background:var(--green);color:#000;border:none;
+  border-radius:14px;font-size:16px;font-weight:700;cursor:pointer;
+  display:none;align-items:center;justify-content:center;gap:8px;
+  -webkit-appearance:none;margin-bottom:20px;transition:opacity .15s;}
+.btn-save.on{display:flex;}
+.btn-save:active{opacity:.75;}
+
+/* LOG */
+.log-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.log-title{font-size:17px;font-weight:700;}
+.btn-csv{background:var(--card);border:1.5px solid var(--border);color:var(--dim);
+  padding:7px 13px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;}
+.btn-csv:active{opacity:.7;}
+.tot{background:var(--card2);border-radius:12px;padding:12px 16px;
+  display:none;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.tot.on{display:flex;}
+.tot-lbl{font-size:13px;color:var(--dim);}
+.tot-val{font-size:28px;font-weight:800;color:var(--green);letter-spacing:-1px;}
+.log-list{display:flex;flex-direction:column;gap:8px;}
+.log-item{background:var(--card);border-radius:12px;padding:13px 14px;
+  display:flex;align-items:center;gap:12px;animation:up .2s ease;}
+.log-bdg{font-size:30px;font-weight:800;color:var(--gold);letter-spacing:-1px;
+  min-width:50px;text-align:center;}
+.log-inf{flex:1;}
+.log-nm{font-size:14px;font-weight:600;}
+.log-mt{font-size:11px;color:var(--dim);margin-top:3px;}
+.log-del{background:none;border:none;color:var(--dim);cursor:pointer;font-size:18px;padding:4px;}
+.log-empty{background:var(--card);border-radius:12px;padding:28px;
+  text-align:center;color:var(--dim);font-size:13px;line-height:1.8;}
+
+/* PILL COLORS */
+.c0{background:#ff453a;} .c1{background:#ff9f0a;} .c2{background:#30d158;}
+.c3{background:#0a84ff;} .c4{background:#bf5af2;} .c5{background:#ffd60a;}
+.c6{background:#ff6b6b;} .c7{background:#4ecdc4;} .c8{background:#a8e6cf;}
+.c9{background:#dda0dd;}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-ico">🔢</div>
+  <div>
+    <div class="hdr-t">COA Smart Counter</div>
+    <div class="hdr-s">AI OBJECT COUNTER</div>
+  </div>
+  <div class="hdr-date" id="hdrDate"></div>
+</div>
+
+<div class="page">
+
+  <!-- API KEY -->
+  <div class="sec">🔑 Anthropic API Key</div>
+  <div class="crd">
+    <div class="key-row">
+      <input type="password" class="key-inp" id="keyInp" placeholder="sk-ant-api03-…" oninput="onKey()">
+      <button class="key-eye" onclick="toggleKey()" id="eyeBtn">👁</button>
+    </div>
+    <div class="key-st" id="keySt"><span style="color:var(--dim)">⚪ API Key를 입력하세요</span></div>
+    <div class="key-hint">
+      발급: <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> → API Keys → Create Key<br>
+      ✅ 이 기기 localStorage에만 저장됨
+    </div>
+  </div>
+
+  <!-- COUNT MODE -->
+  <div class="sec">📦 카운트 모드 선택</div>
+  <div class="tabs">
+    <button class="tab" id="tab0" onclick="setMode(0)">
+      <span class="em">🧴</span>낱개 오브젝트<br><small style="font-size:10px;font-weight:400;">통·병·박스·캔</small>
+    </button>
+    <button class="tab active" id="tab1" onclick="setMode(1)">
+      <span class="em">📋</span>적층 시트<br><small style="font-size:10px;font-weight:400;">판재·패널·종이</small>
+    </button>
+  </div>
+
+  <!-- ITEM INFO -->
+  <div class="sec">📋 자재 정보</div>
+  <div class="crd">
+    <div class="fields">
+      <div class="fld">
+        <label>자재명 (Item)</label>
+        <input type="text" id="itmName" placeholder="영양제 / Lexan">
+      </div>
+      <div class="fld">
+        <label>규격·메모 (Note)</label>
+        <input type="text" id="itmNote" placeholder="Vitamin C / 23.5×83.5">
+      </div>
+    </div>
+  </div>
+
+  <!-- IMAGE -->
+  <div class="sec">📸 사진</div>
+  <div class="img-zone" id="imgZone">
+    <div class="ph" id="phEl">
+      <div class="em" id="phEm">🧴</div>
+      <p id="phTxt">세어야 할 물건들이<br>모두 보이도록 촬영하세요</p>
+      <small id="phSub">탭하거나 아래 버튼 사용</small>
+    </div>
+    <img id="prevImg" style="display:none" alt="">
+    <div class="overlay-badge" id="ovBadge"></div>
+    <button class="overlay-clear" onclick="clearImg(event)">✕</button>
+  </div>
+
+  <div class="cap-row">
+    <button class="cap-btn cap-cam" onclick="document.getElementById('camInp').click()">📷 카메라</button>
+    <button class="cap-btn cap-lib" onclick="document.getElementById('libInp').click()">🖼 앨범</button>
+  </div>
+  <input type="file" id="camInp" accept="image/*" capture="environment">
+  <input type="file" id="libInp" accept="image/*">
+
+  <!-- ANALYZE -->
+  <button class="btn-ana" id="anaBtn" disabled onclick="analyze()">
+    🔍 AI 카운트 분석
+  </button>
+
+  <!-- ERROR -->
+  <div class="err" id="errEl"></div>
+
+  <!-- LOADING -->
+  <div class="load" id="loadEl">
+    <div class="spin"></div>
+    <p id="loadTxt">AI가 분석 중입니다...</p>
+  </div>
+
+  <!-- RESULT -->
+  <div class="res" id="resCard">
+    <div class="res-lbl">분석 결과 · Count Result</div>
+    <div class="res-main">
+      <span class="res-num" id="resNum">0</span>
+      <span class="res-unit" id="resUnit">EA</span>
+    </div>
+    <div class="conf-track"><div class="conf-bar" id="confBar"></div></div>
+    <div class="conf-row">
+      <span>신뢰도 (Confidence)</span>
+      <span id="confPct" style="font-weight:600;"></span>
+    </div>
+    <div class="items-list" id="itemsList" style="display:none">
+      <div class="items-list-title">인식된 아이템 목록</div>
+      <div id="itemPills"></div>
+    </div>
+    <div class="res-note" id="resNote"></div>
+  </div>
+
+  <!-- SAVE -->
+  <button class="btn-save" id="saveBtn" onclick="saveLog()">✅ 재고 기록 저장</button>
+
+  <!-- LOG -->
+  <div class="log-hdr">
+    <div class="log-title">재고 기록 (Log)</div>
+    <button class="btn-csv" onclick="exportCSV()">📥 CSV</button>
+  </div>
+  <div class="tot" id="totRow">
+    <div class="tot-lbl">총 합계 (Total)</div>
+    <div class="tot-val" id="totVal">0</div>
+  </div>
+  <div class="log-list" id="logList">
+    <div class="log-empty">아직 기록이 없습니다<br>분석 후 저장 버튼을 눌러주세요</div>
+  </div>
+
+</div>
+
+<script>
+'use strict';
+let b64=null, mime='image/jpeg', curRes=null, mode=0;
+let log=JSON.parse(localStorage.getItem('coaLog')||'[]');
+
+// ── PROMPTS ──
+const PROMPTS = {
+  0: // Object mode (bottles, boxes, cans...)
+  `You are an expert AI inventory counter. Analyze this photo and COUNT every individual distinct object/container you can see.
+
+These could be supplement bottles, medicine bottles, containers, boxes, cans, jars, bags, or any packaged items.
+
+Rules:
+- Count EACH separate physical item/container as 1
+- If an item is partially hidden but clearly present, count it
+- Do NOT count shelves, surfaces, or background elements
+
+Return ONLY valid JSON — absolutely no markdown, no extra text:
+{"count":<integer total>,"items":[{"name":"<product name or description>","qty":<integer>,"color":"<lid/cap color>"}],"confidence":<0-100>,"notes":"<Korean: 1 sentence observation>"}`,
+
+  1: // Sheet/panel stacking mode
+  `You are an expert industrial inventory counter. Count the total number of stacked flat sheets/panels visible in this photo by examining their edges/layers.
+
+Return ONLY valid JSON — absolutely no markdown, no extra text:
+{"count":<integer>,"items":[],"confidence":<0-100>,"notes":"<Korean: counting method in 1 sentence>"}`
+};
+
+const MODE_META = [
+  { em:'🧴', txt:'세어야 할 물건들이<br>모두 보이도록 촬영하세요', sub:'영양제·통·박스·캔 등', unit:'EA', load:'AI가 오브젝트를 인식 중...' },
+  { em:'📋', txt:'시트 묶음 <b>옆면(엣지)</b>을<br>정면에서 수평으로 촬영', sub:'판재·패널·적층 시트', unit:'SHEETS', load:'AI가 시트 수를 카운트 중...' }
+];
+
+const COLORS = ['c0','c1','c2','c3','c4','c5','c6','c7','c8','c9'];
+
+(function init(){
+  const now=new Date();
+  document.getElementById('hdrDate').innerHTML=
+    now.toLocaleDateString('ko-KR',{month:'2-digit',day:'2-digit'})+'<br>'+
+    now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  const k=localStorage.getItem('coaKey')||'';
+  if(k){document.getElementById('keyInp').value=k;setKeySt(k);}
+  setMode(0);
+  renderLog();
+  document.getElementById('camInp').addEventListener('change',onFile);
+  document.getElementById('libInp').addEventListener('change',onFile);
+  document.getElementById('imgZone').addEventListener('click',()=>{
+    if(!b64) document.getElementById('camInp').click();
+  });
+})();
+
+function setMode(m){
+  mode=m;
+  document.getElementById('tab0').className='tab'+(m===0?' active':'');
+  document.getElementById('tab1').className='tab'+(m===1?' active':'');
+  const meta=MODE_META[m];
+  document.getElementById('phEm').textContent=meta.em;
+  document.getElementById('phTxt').innerHTML=meta.txt;
+  document.getElementById('phSub').textContent=meta.sub;
+  document.getElementById('resUnit').textContent=meta.unit;
+  clearResult();
+}
+
+// ── KEY ──
+function onKey(){
+  const k=document.getElementById('keyInp').value.trim();
+  localStorage.setItem('coaKey',k);
+  setKeySt(k); refreshBtn();
+}
+function setKeySt(k){
+  const el=document.getElementById('keySt');
+  if(!k) el.innerHTML='<span style="color:var(--dim)">⚪ API Key를 입력하세요</span>';
+  else if(k.startsWith('sk-ant-')) el.innerHTML='<span style="color:var(--green)">🟢 확인됨 · 저장됨</span>';
+  else el.innerHTML='<span style="color:var(--red)">🔴 올바르지 않음 (sk-ant- 로 시작해야 함)</span>';
+}
+function toggleKey(){
+  const i=document.getElementById('keyInp'),b=document.getElementById('eyeBtn');
+  if(i.type==='password'){i.type='text';b.textContent='🙈';}
+  else{i.type='password';b.textContent='👁';}
+}
+
+// ── IMAGE ──
+function onFile(e){
+  const file=e.target.files[0]; if(!file) return;
+  mime=file.type||'image/jpeg';
+  const r=new FileReader();
+  r.onload=ev=>{
+    b64=ev.target.result.split(',')[1];
+    document.getElementById('prevImg').src=ev.target.result;
+    document.getElementById('prevImg').style.display='block';
+    document.getElementById('phEl').style.display='none';
+    document.getElementById('imgZone').classList.add('filled');
+    clearResult(); refreshBtn();
+  };
+  r.readAsDataURL(file); e.target.value='';
+}
+function clearImg(e){
+  e.stopPropagation();
+  b64=null;
+  document.getElementById('prevImg').style.display='none';
+  document.getElementById('prevImg').src='';
+  document.getElementById('phEl').style.display='block';
+  document.getElementById('imgZone').classList.remove('filled');
+  document.getElementById('ovBadge').style.display='none';
+  clearResult(); refreshBtn();
+}
+function clearResult(){
+  document.getElementById('resCard').classList.remove('on');
+  document.getElementById('saveBtn').classList.remove('on');
+  document.getElementById('errEl').classList.remove('on');
+  document.getElementById('ovBadge').style.display='none';
+  curRes=null;
+}
+function refreshBtn(){
+  const k=(document.getElementById('keyInp').value||'').trim();
+  document.getElementById('anaBtn').disabled=!(k.startsWith('sk-ant-')&&b64);
+}
+
+// ── ANALYZE ──
+async function analyze(){
+  const apiKey=(document.getElementById('keyInp').value||'').trim();
+  if(!b64||!apiKey) return;
+  const name=document.getElementById('itmName').value.trim()||'Unknown';
+  const note=document.getElementById('itmNote').value.trim()||'';
+  const meta=MODE_META[mode];
+
+  document.getElementById('loadEl').classList.add('on');
+  document.getElementById('loadTxt').textContent=meta.load;
+  document.getElementById('errEl').classList.remove('on');
+  document.getElementById('resCard').classList.remove('on');
+  document.getElementById('saveBtn').classList.remove('on');
+  document.getElementById('anaBtn').disabled=true;
+  document.getElementById('ovBadge').style.display='none';
+
+  const extraCtx = name!=='Unknown' ? `\nContext: item type = "${name}"${note?' / note = "'+note+'"':''}` : '';
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'content-type':'application/json',
+        'x-api-key':apiKey,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({
+        model:'claude-opus-4-5',
+        max_tokens:512,
+        messages:[{role:'user',content:[
+          {type:'image',source:{type:'base64',media_type:mime,data:b64}},
+          {type:'text',text:PROMPTS[mode]+extraCtx}
+        ]}]
+      })
+    });
+
+    if(!res.ok){
+      const j=await res.json().catch(()=>({}));
+      const msg=j?.error?.message||`HTTP ${res.status}`;
+      if(res.status===401) throw new Error('❌ API Key가 잘못되었습니다\n'+msg);
+      if(res.status===429) throw new Error('⏳ 요청 한도 초과 — 잠시 후 재시도');
+      throw new Error('서버 오류 ('+res.status+'): '+msg);
+    }
+
+    const data=await res.json();
+    const raw=(data.content?.find(b=>b.type==='text')?.text||'').trim()
+      .replace(/^```json\s*/i,'').replace(/```$/,'').trim();
+    const p=JSON.parse(raw);
+
+    curRes={
+      mode, count:Math.max(0,parseInt(p.count)||0),
+      items:Array.isArray(p.items)?p.items:[],
+      confidence:Math.min(100,Math.max(0,parseInt(p.confidence)||0)),
+      notes:p.notes||'', itemName:name, itemNote:note,
+      unit:meta.unit, ts:new Date().toISOString()
+    };
+    showResult(curRes);
+  }catch(err){
+    showErr(err.message||String(err));
+  }finally{
+    document.getElementById('loadEl').classList.remove('on');
+    refreshBtn();
+  }
+}
+
+function showResult(r){
+  document.getElementById('resNum').textContent=r.count;
+  const c=r.confidence;
+  const col=c>=80?'var(--green)':c>=60?'var(--gold)':'var(--red)';
+  document.getElementById('confBar').style.width=c+'%';
+  document.getElementById('confBar').style.background=col;
+  document.getElementById('confPct').textContent=c+'%';
+  document.getElementById('confPct').style.color=col;
+
+  // Items list (object mode)
+  const iList=document.getElementById('itemsList');
+  const iPills=document.getElementById('itemPills');
+  if(r.mode===0&&r.items&&r.items.length>0){
+    iPills.innerHTML=r.items.map((it,i)=>{
+      const nm=it.name||(it.qty>1?`Item ${i+1} ×${it.qty}`:`Item ${i+1}`);
+      const qty=it.qty||1;
+      const col2=COLORS[i%COLORS.length];
+      return `<span class="item-pill"><span class="dot ${col2}"></span>${nm}${qty>1?' ×'+qty:''}</span>`;
+    }).join('');
+    iList.style.display='block';
+  } else {
+    iList.style.display='none';
+  }
+
+  document.getElementById('resNote').textContent=r.notes||'';
+  document.getElementById('resCard').classList.add('on');
+  document.getElementById('saveBtn').classList.add('on');
+
+  // Overlay badge on image
+  const badge=document.getElementById('ovBadge');
+  badge.textContent=r.count+' '+r.unit;
+  badge.style.display='block';
+
+  if(navigator.vibrate) navigator.vibrate(40);
+}
+
+function showErr(msg){
+  const el=document.getElementById('errEl');
+  el.innerHTML=msg.replace(/\n/g,'<br>');
+  el.classList.add('on');
+}
+
+// ── LOG ──
+function saveLog(){
+  if(!curRes) return;
+  log.unshift({...curRes,id:Date.now()});
+  localStorage.setItem('coaLog',JSON.stringify(log));
+  renderLog();
+  const btn=document.getElementById('saveBtn');
+  btn.textContent='✅ 저장 완료!';
+  setTimeout(()=>{btn.innerHTML='✅ 재고 기록 저장';btn.classList.remove('on');},1400);
+  curRes=null;
+}
+
+function renderLog(){
+  const list=document.getElementById('logList');
+  const totRow=document.getElementById('totRow');
+  if(!log.length){
+    list.innerHTML='<div class="log-empty">아직 기록이 없습니다<br>분석 후 저장 버튼을 눌러주세요</div>';
+    totRow.classList.remove('on'); return;
+  }
+  document.getElementById('totVal').textContent=log.reduce((s,i)=>s+(i.count||0),0).toLocaleString();
+  totRow.classList.add('on');
+  list.innerHTML=log.map(item=>{
+    const d=new Date(item.ts);
+    const ds=d.toLocaleDateString('ko-KR',{month:'2-digit',day:'2-digit'})+' '+
+             d.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+    const c=item.confidence||0;
+    const cc=c>=80?'var(--green)':c>=60?'var(--gold)':'var(--red)';
+    const modeIco=item.mode===0?'🧴':'📋';
+    return `<div class="log-item">
+      <div class="log-bdg">${item.count}</div>
+      <div class="log-inf">
+        <div class="log-nm">${modeIco} ${item.itemName}${item.itemNote?' · '+item.itemNote:''}</div>
+        <div class="log-mt">${ds} · <span style="color:${cc}">신뢰도 ${c}%</span> · ${item.unit}</div>
+      </div>
+      <button class="log-del" onclick="delLog(${item.id})">🗑</button>
+    </div>`;
+  }).join('');
+}
+
+function delLog(id){
+  log=log.filter(i=>i.id!==id);
+  localStorage.setItem('coaLog',JSON.stringify(log));
+  renderLog();
+}
+
+function exportCSV(){
+  if(!log.length){alert('저장된 기록이 없습니다.');return;}
+  const rows=[['Mode','Item','Note','Count','Unit','Confidence%','Timestamp'],
+    ...log.map(i=>[i.mode===0?'오브젝트':'시트',i.itemName,i.itemNote||'',
+      i.count,i.unit,i.confidence,new Date(i.ts).toLocaleString('ko-KR')])
+  ].map(r=>r.map(c=>`"${c}"`).join(',')).join('\n');
+  const url=URL.createObjectURL(new Blob(['\ufeff'+rows],{type:'text/csv;charset=utf-8'}));
+  const a=document.createElement('a');
+  a.href=url;a.download=`COA_Inventory_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
